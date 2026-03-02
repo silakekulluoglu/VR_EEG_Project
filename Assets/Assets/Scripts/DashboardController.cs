@@ -114,7 +114,7 @@ public class DashboardController : MonoBehaviour
         }
     }
 
-    void OnStartClicked()
+    public void OnStartClicked()
     {
         Debug.Log("Experiment starting...");
 
