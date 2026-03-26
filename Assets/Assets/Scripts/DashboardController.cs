@@ -10,10 +10,12 @@ public class DashboardController : MonoBehaviour
     [Header("Panels")]
     public GameObject startScreen; // starting panel
     public CanvasGroup experimentCanvasGroup; // splitted experiment view
+    public GameObject configScrollView; // configuration panel for the experimenter
 
     [Header("UI Elements")]
     public Button startButton;
     public TextMeshProUGUI statusText;
+    public Button continueButton;
 
     private bool uiUpdateNeeded = false; 
     private bool newSensorStatus = false;
@@ -36,14 +38,23 @@ public class DashboardController : MonoBehaviour
             }
         }
 
+        /*
+        startScreen.SetActive(false); // Start ekranını kapat ki butonları görebilelim
+        experimentCanvasGroup.alpha = 1; // Görünür yap
+        experimentCanvasGroup.interactable = true; // TIKLANABİLİR YAP (En önemlisi bu)
+        experimentCanvasGroup.blocksRaycasts = true;
+        */
+
         // default start mode settings
         startScreen.SetActive(true);
+        configScrollView.SetActive(false);
         experimentCanvasGroup.alpha = 0; // we are making the experiment view invisible
         experimentCanvasGroup.interactable = false;
         experimentCanvasGroup.blocksRaycasts = false;
 
         // what happens when the button is clicked
         startButton.onClick.AddListener(OnStartClicked);
+        continueButton.onClick.AddListener(OnContinueClicked);
 
         // if the sensor is already connected when the game starts
         if (LooxidLinkManager.Instance != null &&
@@ -116,10 +127,20 @@ public class DashboardController : MonoBehaviour
 
     public void OnStartClicked()
     {
-        Debug.Log("Experiment starting...");
+        Debug.Log("Experiment starting... Leading to configuration panel.");
 
         // change the screen
         startScreen.SetActive(false);
+        configScrollView.SetActive(true); // we make config scroll view visible
+
+    }
+
+    public void OnContinueClicked()
+    {
+        Debug.Log("Configuration done. Starting experiment...");
+
+        // change the screen
+        configScrollView.SetActive(false); // we hide the config scroll view
 
         // we make experiment view visible
         experimentCanvasGroup.alpha = 1;
