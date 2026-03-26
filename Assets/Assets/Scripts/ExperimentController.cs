@@ -65,18 +65,33 @@ public class ExperimentController : MonoBehaviour
         StartCoroutine(SwitchScene(sceneName, label));
     }
 
+    void SetSceneLayer(string sceneName)
+    {
+        Scene scene = SceneManager.GetSceneByName(sceneName);
+        foreach (GameObject obj in scene.GetRootGameObjects())
+            SetLayerRecursively(obj, LayerMask.NameToLayer("VROnly"));
+    }
+
+    void SetLayerRecursively(GameObject obj, int layer)
+    {
+        obj.layer = layer;
+        foreach (Transform child in obj.transform)
+            SetLayerRecursively(child.gameObject, layer);
+    }
+
     IEnumerator SwitchScene(string newSceneName, string label)
     {
-        // unload current scene if one is loaded
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
             yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
         }
 
-        // load the new scene on top of main scene
         yield return SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
         currentlyLoadedScene = newSceneName;
+
+        // move everything in the loaded scene to VROnly layer
+        SetSceneLayer(newSceneName);
 
         LogEvent(label + "_START");
         Debug.Log("Switched to: " + newSceneName);
@@ -120,3 +135,4 @@ public class ExperimentController : MonoBehaviour
         Debug.Log("Logged: " + line);
     }
 }
+
