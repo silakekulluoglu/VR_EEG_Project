@@ -90,11 +90,24 @@ public class ExperimentController : MonoBehaviour
         yield return SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
         currentlyLoadedScene = newSceneName;
 
-        // move everything in the loaded scene to VROnly layer
+        CenterSceneAroundPlayer(newSceneName);  // ADD THIS
         SetSceneLayer(newSceneName);
 
         LogEvent(label + "_START");
-        Debug.Log("Switched to: " + newSceneName);
+    }
+
+    void CenterSceneAroundPlayer(string sceneName)
+    {
+        Scene scene = SceneManager.GetSceneByName(sceneName);
+        GameObject[] rootObjects = scene.GetRootGameObjects();
+
+        foreach (GameObject obj in rootObjects)
+        {
+            if (obj.GetComponent<Camera>() != null) continue;
+            if (obj.GetComponent<Light>() != null) continue;
+
+            obj.transform.position = new Vector3(-37.81f, -4.52f, -36.92f); // try different Y values
+        }
     }
 
     void OnBreakClicked()
