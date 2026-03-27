@@ -3969,7 +3969,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 826b054fdd5794857abf3caee4d1196f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  welcomeEnvironment: {fileID: 0}
+  welcomeEnvironment: {fileID: 691512450}
   config: {fileID: 11400000, guid: cc273900438404111b86c9254eff6df7, type: 2}
   sceneDropdown: {fileID: 1953324223}
   showSceneButton: {fileID: 1717630942}
