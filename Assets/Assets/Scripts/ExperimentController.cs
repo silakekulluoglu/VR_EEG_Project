@@ -7,6 +7,9 @@ using UnityEngine.UI;
 
 public class ExperimentController : MonoBehaviour
 {
+    [Header("Welcome Environment")]
+    public GameObject welcomeEnvironment;
+
     [Header("Config Asset")]
     public ExperimentConfig config;
 
@@ -81,6 +84,10 @@ public class ExperimentController : MonoBehaviour
 
     IEnumerator SwitchScene(string newSceneName, string label)
     {
+        // hide welcome environment when any scene loads
+        if (welcomeEnvironment != null)
+            welcomeEnvironment.SetActive(false);
+
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
@@ -90,7 +97,7 @@ public class ExperimentController : MonoBehaviour
         yield return SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
         currentlyLoadedScene = newSceneName;
 
-        CenterSceneAroundPlayer(newSceneName);  // ADD THIS
+        CenterSceneAroundPlayer(newSceneName);
         SetSceneLayer(newSceneName);
 
         LogEvent(label + "_START");
@@ -101,12 +108,26 @@ public class ExperimentController : MonoBehaviour
         Scene scene = SceneManager.GetSceneByName(sceneName);
         GameObject[] rootObjects = scene.GetRootGameObjects();
 
+        // first, find the camera in the loaded scene
+        Vector3 offset = Vector3.zero;
+        foreach (GameObject obj in rootObjects)
+        {
+            Camera cam = obj.GetComponentInChildren<Camera>();
+            if (cam != null)
+            {
+                // offset is the negative of that camera's position
+                offset = -cam.transform.position;
+                break;
+            }
+        }
+
+        // then move all root objects by that offset
         foreach (GameObject obj in rootObjects)
         {
             if (obj.GetComponent<Camera>() != null) continue;
             if (obj.GetComponent<Light>() != null) continue;
 
-            obj.transform.position = new Vector3(-37.81f, -4.52f, -36.92f); // try different Y values
+            obj.transform.position += offset;
         }
     }
 
@@ -115,10 +136,32 @@ public class ExperimentController : MonoBehaviour
         breakCount++;
         string label = "BREAK_" + breakCount;
 
+        StartCoroutine(HandleBreak(label));
+    }
+
+    IEnumerator HandleBreak(string label)
+    {
+        // unload current scene
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
-            StartCoroutine(UnloadCurrent());
+            yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
+            currentlyLoadedScene = "";
+        }
+
+        // if experimenter provided a break scene, load it
+        if (!string.IsNullOrEmpty(config.breakSceneName))
+        {
+            yield return SceneManager.LoadSceneAsync(config.breakSceneName, LoadSceneMode.Additive);
+            currentlyLoadedScene = config.breakSceneName;
+            CenterSceneAroundPlayer(config.breakSceneName);
+            SetSceneLayer(config.breakSceneName);
+        }
+        else
+        {
+            // no break scene — show welcome environment as default
+            if (welcomeEnvironment != null)
+                welcomeEnvironment.SetActive(true);
         }
 
         LogEvent(label);

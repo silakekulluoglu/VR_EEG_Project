@@ -15,6 +15,9 @@ public class ConfigPageManager : MonoBehaviour
     public Transform stimuliContainer;
     public GameObject stimulusRowPrefab;
 
+    [Header("Break UI")]
+    public TMP_InputField breakSceneInput;
+
     [Header("Panel References")]
     public GameObject configPanel;
     public GameObject experimentView;
@@ -25,6 +28,7 @@ public class ConfigPageManager : MonoBehaviour
     {
         baselineSceneInput.text = config.baselineSceneName;
         baselineDurationInput.text = config.baselineDuration.ToString();
+        breakSceneInput.text = config.breakSceneName;
     }
 
     public void OnAddStimulusClicked()
@@ -53,7 +57,8 @@ public class ConfigPageManager : MonoBehaviour
     {
         config.baselineSceneName = baselineSceneInput.text.Trim();
         config.baselineDuration = float.Parse(baselineDurationInput.text);
-
+        config.breakSceneName = breakSceneInput.text.Trim();
+        
         config.stimuli.Clear();
         foreach (var row in rows)
             config.stimuli.Add(new StimulusEntry

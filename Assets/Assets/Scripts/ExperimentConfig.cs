@@ -6,6 +6,7 @@ public class ExperimentConfig : ScriptableObject
 {
     public string baselineSceneName;
     public float baselineDuration = 180f;
+    public string breakSceneName = ""; // optional, leave empty for default
     public List<StimulusEntry> stimuli = new List<StimulusEntry>();
 }
 
