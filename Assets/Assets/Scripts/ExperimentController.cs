@@ -21,12 +21,13 @@ public class ExperimentController : MonoBehaviour
     [Header("Logging")]
     public string logFileName = "experiment_log";
 
+    public static string CurrentSceneLabel = "NONE";
     private string logPath = "";
-    private int breakCount = 0;
     private string currentlyLoadedScene = "";
 
     void Start()
     {
+        CurrentSceneLabel = "NONE";
         logPath = Application.persistentDataPath + "/" + logFileName + "_" +
                   System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".csv";
         System.IO.File.WriteAllText(logPath, "timestamp,event\n");
@@ -84,13 +85,13 @@ public class ExperimentController : MonoBehaviour
 
     IEnumerator SwitchScene(string newSceneName, string label)
     {
-        // hide welcome environment when any scene loads
         if (welcomeEnvironment != null)
             welcomeEnvironment.SetActive(false);
 
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
+            CurrentSceneLabel = "TRANSITION"; // ← add this
             yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
         }
 
@@ -99,10 +100,12 @@ public class ExperimentController : MonoBehaviour
 
         CenterSceneAroundPlayer(newSceneName);
         SetSceneLayer(newSceneName);
+        DisableExtraAudioListeners(newSceneName);
 
+        CurrentSceneLabel = label; // ← add this (e.g. "BASELINE", "STIMULI_1")
         LogEvent(label + "_START");
     }
-
+    
     void CenterSceneAroundPlayer(string sceneName)
     {
         Scene scene = SceneManager.GetSceneByName(sceneName);
@@ -133,23 +136,19 @@ public class ExperimentController : MonoBehaviour
 
     void OnBreakClicked()
     {
-        breakCount++;
-        string label = "BREAK_" + breakCount;
-
-        StartCoroutine(HandleBreak(label));
+        StartCoroutine(HandleBreak("BREAK"));
     }
 
     IEnumerator HandleBreak(string label)
     {
-        // unload current scene
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
+            CurrentSceneLabel = label; // ← add this (e.g. "BREAK_1")
             yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
             currentlyLoadedScene = "";
         }
 
-        // if experimenter provided a break scene, load it
         if (!string.IsNullOrEmpty(config.breakSceneName))
         {
             yield return SceneManager.LoadSceneAsync(config.breakSceneName, LoadSceneMode.Additive);
@@ -159,7 +158,6 @@ public class ExperimentController : MonoBehaviour
         }
         else
         {
-            // no break scene — show welcome environment as default
             if (welcomeEnvironment != null)
                 welcomeEnvironment.SetActive(true);
         }
@@ -189,6 +187,18 @@ public class ExperimentController : MonoBehaviour
         string line = System.DateTime.Now.ToString("HH:mm:ss.fff") + "," + label;
         System.IO.File.AppendAllText(logPath, line + "\n");
         Debug.Log("Logged: " + line);
+    }
+
+    void DisableExtraAudioListeners(string sceneName)
+    {
+        Scene scene = SceneManager.GetSceneByName(sceneName);
+        foreach (GameObject obj in scene.GetRootGameObjects())
+        {
+            // find and disable any audio listeners in the loaded scene
+            AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>();
+            foreach (AudioListener listener in listeners)
+                listener.enabled = false;
+        }
     }
 }
 
