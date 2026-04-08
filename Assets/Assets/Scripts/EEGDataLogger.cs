@@ -11,6 +11,9 @@ public class EEGDataLogger : MonoBehaviour
 
     private string basePath;
 
+    private float cachedTheta = 0f;
+    private float cachedAlpha = 0f;
+
     void Start()
     {
         // save to Documents/eeg-analytics
@@ -38,12 +41,20 @@ public class EEGDataLogger : MonoBehaviour
         mindIndexLogger = new StreamWriter(
             Path.Combine(basePath, "mindIndex_" + timestamp + ".csv"), true);
         mindIndexLogger.AutoFlush = true;
-        mindIndexLogger.WriteLine("timestamp,scene_label,attention,relaxation,asymmetry,leftActivity,rightActivity");
+        mindIndexLogger.WriteLine("timestamp,scene_label,attention,relaxation,asymmetry,leftActivity,rightActivity, cognitive_load");
 
         // subscribe to NetworkManager events
         NetworkManager.OnNetworkReceiveEEGRawSignals += OnRawSignals;
-        NetworkManager.OnNetworkReceiveEEGFeatureIndexes += OnFeatureIndexes;
+        LooxidLinkData.OnReceiveEEGFeatureIndexes += OnFeatureIndexes;
         NetworkManager.OnNetworkReceiveMindIndexes += OnMindIndex;
+    }
+
+    public static float CurrentCognitiveLoad { get; private set; } = 0f;
+
+    float ComputeCognitiveLoad()
+    {
+        if (cachedAlpha <= 0.0001f) return 0f; // sıfıra çok yakınsa böl
+        return cachedTheta / cachedAlpha;
     }
 
     void OnRawSignals(EEGRawSignal signal)
@@ -59,8 +70,13 @@ public class EEGDataLogger : MonoBehaviour
 
     void OnFeatureIndexes(EEGFeatureIndex featureIndex)
     {
-        string label = ExperimentController.CurrentSceneLabel;
-        string delta = "", theta = "", alpha = "", beta = "", gamma = "";
+        Debug.Log("OnFeatureIndexes called");
+        string delta = "";
+        string theta = "";
+        string alpha = "";
+        string beta  = "";
+        string gamma = "";
+
         foreach (EEGSensorID sensorID in Enum.GetValues(typeof(EEGSensorID)))
         {
             delta += featureIndex.Delta(sensorID) + ";";
@@ -69,28 +85,65 @@ public class EEGDataLogger : MonoBehaviour
             beta  += featureIndex.Beta(sensorID)  + ";";
             gamma += featureIndex.Gamma(sensorID) + ";";
         }
+
         featureDataLogger.WriteLine(
-            $"{FormatTimestamp(featureIndex.timestamp)},{label},{delta},{theta},{alpha},{beta},{gamma}");
+            $"{FormatTimestamp(featureIndex.timestamp)},{ExperimentController.CurrentSceneLabel},{delta},{theta},{alpha},{beta},{gamma}");
+
+        // cognitive load için cache güncelle
+        EEGSensorID[] channels = {
+        EEGSensorID.AF3, EEGSensorID.AF4,
+        EEGSensorID.Fp1, EEGSensorID.Fp2,
+        EEGSensorID.AF7, EEGSensorID.AF8
+    };
+
+    float t = 0f, a = 0f;
+    int validCount = 0;
+
+    foreach (var ch in channels)
+    {
+        double tVal = featureIndex.Theta(ch);
+        double aVal = featureIndex.Alpha(ch);
+
+        Debug.Log($"{ch} Theta={tVal}, Alpha={aVal}");
+
+        if (!double.IsNaN(tVal) && !double.IsInfinity(tVal) &&
+            !double.IsNaN(aVal) && !double.IsInfinity(aVal))
+        {
+            t += (float)tVal;
+            a += (float)aVal;
+            validCount++;
+        }
+    }
+
+    Debug.Log($"validCount={validCount}, cachedTheta={t}, cachedAlpha={a}");
+
+    if (validCount > 0)
+    {
+        cachedTheta = Mathf.Abs(t / validCount);
+        cachedAlpha = Mathf.Abs(a / validCount);
+    }
     }
 
     void OnMindIndex(MindIndex mindIndex)
     {
-        string label = ExperimentController.CurrentSceneLabel;
+        float cognitiveLoad = ComputeCognitiveLoad(); 
+        CurrentCognitiveLoad = cognitiveLoad;
+
         mindIndexLogger.WriteLine(
             $"{FormatTimestamp(mindIndex.timestamp)}," +
-            $"{label}," +
+            $"{ExperimentController.CurrentSceneLabel}," +
             $"{mindIndex.attention}," +
             $"{mindIndex.relaxation}," +
             $"{mindIndex.asymmetry}," +
             $"{mindIndex.leftActivity}," +
-            $"{mindIndex.rightActivity}");
+            $"{mindIndex.rightActivity}," +
+            $"{cognitiveLoad}");
     }
-
     void OnDisable()
     {
         // unsubscribe when done
         NetworkManager.OnNetworkReceiveEEGRawSignals -= OnRawSignals;
-        NetworkManager.OnNetworkReceiveEEGFeatureIndexes -= OnFeatureIndexes;
+         LooxidLinkData.OnReceiveEEGFeatureIndexes -= OnFeatureIndexes;
         NetworkManager.OnNetworkReceiveMindIndexes -= OnMindIndex;
     }
 

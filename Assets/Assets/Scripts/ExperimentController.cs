@@ -25,6 +25,8 @@ public class ExperimentController : MonoBehaviour
     private string logPath = "";
     private string currentlyLoadedScene = "";
 
+    private bool isSwitching = false;
+
     void Start()
     {
         CurrentSceneLabel = "NONE";
@@ -38,7 +40,7 @@ public class ExperimentController : MonoBehaviour
         breakButton.onClick.AddListener(OnBreakClicked);
     }
 
-    void BuildDropdown()
+    public void BuildDropdown()
     {
         sceneDropdown.ClearOptions();
         List<string> options = new List<string>();
@@ -50,6 +52,8 @@ public class ExperimentController : MonoBehaviour
 
     void OnShowSceneClicked()
     {
+        if (isSwitching) return; // ← işlem varsa yeni isteği yoksay
+        
         int index = sceneDropdown.value;
         string sceneName;
         string label;
@@ -85,13 +89,17 @@ public class ExperimentController : MonoBehaviour
 
     IEnumerator SwitchScene(string newSceneName, string label)
     {
+        isSwitching = true;
+        showSceneButton.interactable = false; // ← butonu kapat
+        breakButton.interactable = false;
+
         if (welcomeEnvironment != null)
             welcomeEnvironment.SetActive(false);
 
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
-            CurrentSceneLabel = "TRANSITION"; // ← add this
+            CurrentSceneLabel = "TRANSITION";
             yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
         }
 
@@ -100,13 +108,18 @@ public class ExperimentController : MonoBehaviour
 
         CenterSceneAroundPlayer(newSceneName);
         SetSceneLayer(newSceneName);
-        DisableExtraAudioListeners(newSceneName);
+        DisableExtraSceneComponents(newSceneName);
 
-        CurrentSceneLabel = label; // ← add this (e.g. "BASELINE", "STIMULI_1")
+        CurrentSceneLabel = label;
         LogEvent(label + "_START");
+
+        isSwitching = false;
+        showSceneButton.interactable = true; // ← butonu aç
+        breakButton.interactable = true;
     }
+
     
-    void CenterSceneAroundPlayer(string sceneName)
+     void CenterSceneAroundPlayer(string sceneName)
     {
         Scene scene = SceneManager.GetSceneByName(sceneName);
         GameObject[] rootObjects = scene.GetRootGameObjects();
@@ -134,6 +147,7 @@ public class ExperimentController : MonoBehaviour
         }
     }
 
+
     void OnBreakClicked()
     {
         StartCoroutine(HandleBreak("BREAK"));
@@ -141,10 +155,14 @@ public class ExperimentController : MonoBehaviour
 
     IEnumerator HandleBreak(string label)
     {
+        isSwitching = true;
+        showSceneButton.interactable = false;
+        breakButton.interactable = false;
+
         if (!string.IsNullOrEmpty(currentlyLoadedScene))
         {
             LogEvent(GetCurrentLabel() + "_END");
-            CurrentSceneLabel = label; // ← add this (e.g. "BREAK_1")
+            CurrentSceneLabel = label;
             yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
             currentlyLoadedScene = "";
         }
@@ -155,6 +173,7 @@ public class ExperimentController : MonoBehaviour
             currentlyLoadedScene = config.breakSceneName;
             CenterSceneAroundPlayer(config.breakSceneName);
             SetSceneLayer(config.breakSceneName);
+            DisableExtraSceneComponents(config.breakSceneName);
         }
         else
         {
@@ -164,6 +183,10 @@ public class ExperimentController : MonoBehaviour
 
         LogEvent(label);
         Debug.Log("Break: " + label);
+
+        isSwitching = false;
+        showSceneButton.interactable = true;
+        breakButton.interactable = true;
     }
 
     IEnumerator UnloadCurrent()
@@ -189,15 +212,25 @@ public class ExperimentController : MonoBehaviour
         Debug.Log("Logged: " + line);
     }
 
-    void DisableExtraAudioListeners(string sceneName)
+    void DisableExtraSceneComponents(string sceneName)
     {
         Scene scene = SceneManager.GetSceneByName(sceneName);
         foreach (GameObject obj in scene.GetRootGameObjects())
         {
-            // find and disable any audio listeners in the loaded scene
+            // disable extra cameras
+            Camera[] cameras = obj.GetComponentsInChildren<Camera>();
+            foreach (Camera cam in cameras)
+                cam.enabled = false;
+
+            // disable extra audio listeners
             AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>();
             foreach (AudioListener listener in listeners)
                 listener.enabled = false;
+
+            // disable extra lights
+            Light[] lights = obj.GetComponentsInChildren<Light>();
+            foreach (Light light in lights)
+                light.enabled = false;
         }
     }
 }

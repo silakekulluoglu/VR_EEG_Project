@@ -67,6 +67,10 @@ public class ConfigPageManager : MonoBehaviour
                 sceneName = row.GetSceneName()
             });
 
+        ExperimentController expController = FindObjectOfType<ExperimentController>();
+        if (expController != null)
+            expController.BuildDropdown();
+
         configPanel.SetActive(false);
         experimentView.SetActive(true);
     }
