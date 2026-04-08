@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class ConfigPageManager : MonoBehaviour
 {
@@ -22,6 +23,10 @@ public class ConfigPageManager : MonoBehaviour
     public GameObject configPanel;
     public GameObject experimentView;
 
+    [Header("Auto Mode")]
+    public Toggle autoModeToggle;
+    public TMP_InputField breakDurationInput;
+
     private List<StimulusRowUI> rows = new List<StimulusRowUI>();
 
     void Start()
@@ -37,11 +42,11 @@ public class ConfigPageManager : MonoBehaviour
         SpawnRow(label, "");
     }
 
-    void SpawnRow(string label, string sceneName)
+    void SpawnRow(string label, string sceneName, float duration = 60f)
     {
         GameObject go = Instantiate(stimulusRowPrefab, stimuliContainer);
         StimulusRowUI row = go.GetComponent<StimulusRowUI>();
-        row.Init(label, sceneName, OnRemoveRow);
+        row.Init(label, sceneName, duration, OnRemoveRow); // ← duration ve OnRemoveRow eklendi
         rows.Add(row);
     }
 
@@ -58,20 +63,27 @@ public class ConfigPageManager : MonoBehaviour
         config.baselineSceneName = baselineSceneInput.text.Trim();
         config.baselineDuration = float.Parse(baselineDurationInput.text);
         config.breakSceneName = breakSceneInput.text.Trim();
-        
+        config.breakDuration = float.TryParse(breakDurationInput.text, out float bd) ? bd : 30f;
+        config.autoMode = autoModeToggle.isOn;
+
         config.stimuli.Clear();
         foreach (var row in rows)
             config.stimuli.Add(new StimulusEntry
             {
                 label = row.GetLabel(),
-                sceneName = row.GetSceneName()
+                sceneName = row.GetSceneName(),
+                duration = row.GetDuration()
             });
-
-        ExperimentController expController = FindObjectOfType<ExperimentController>();
-        if (expController != null)
-            expController.BuildDropdown();
 
         configPanel.SetActive(false);
         experimentView.SetActive(true);
+
+        // auto mode başlat
+        if (config.autoMode)
+        {
+            ExperimentController experimentController = 
+                experimentView.GetComponentInChildren<ExperimentController>();
+            experimentController.StartAutoMode();
+        }
     }
 }

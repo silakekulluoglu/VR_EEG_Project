@@ -17,15 +17,21 @@ public class ExperimentController : MonoBehaviour
     public TMP_Dropdown sceneDropdown;
     public Button showSceneButton;
     public Button breakButton;
+    public Button continueButton;
 
     [Header("Logging")]
     public string logFileName = "experiment_log";
+
+    [Header("Auto Mode UI")]
+    public TextMeshProUGUI timerText;
 
     public static string CurrentSceneLabel = "NONE";
     private string logPath = "";
     private string currentlyLoadedScene = "";
 
     private bool isSwitching = false;
+    private Coroutine autoCoroutine;
+    private bool continuePressed = false;
 
     void Start()
     {
@@ -38,6 +44,15 @@ public class ExperimentController : MonoBehaviour
 
         showSceneButton.onClick.AddListener(OnShowSceneClicked);
         breakButton.onClick.AddListener(OnBreakClicked);
+        continueButton.onClick.AddListener(OnContinueAutoClicked);
+
+        continueButton.gameObject.SetActive(false);
+
+        if (timerText != null)
+            timerText.gameObject.SetActive(config.autoMode);
+
+        if (config.autoMode)
+            autoCoroutine = StartCoroutine(AutoSequence());
     }
 
     public void BuildDropdown()
@@ -49,10 +64,70 @@ public class ExperimentController : MonoBehaviour
             options.Add(stimulus.label + " - " + stimulus.sceneName);
         sceneDropdown.AddOptions(options);
     }
+    IEnumerator AutoSequence()
+    {
+        // Baseline
+        yield return StartCoroutine(SwitchScene(config.baselineSceneName, "BASELINE"));
+        yield return StartCoroutine(CountDown(config.baselineDuration));
+
+        for (int i = 0; i < config.stimuli.Count; i++)
+        {
+            // süre doldu → break
+            yield return StartCoroutine(HandleBreak("BREAK"));
+
+            // experimenter continue a basana kadar bekle
+            continuePressed = false;
+            continueButton.gameObject.SetActive(true);
+            if (timerText != null) timerText.text = "Waiting...";
+            yield return new WaitUntil(() => continuePressed);
+            continueButton.gameObject.SetActive(false);
+
+            // sıradaki stimulus
+            var stimulus = config.stimuli[i];
+            yield return StartCoroutine(SwitchScene(stimulus.sceneName, "STIMULI_" + (i + 1)));
+            yield return StartCoroutine(CountDown(stimulus.duration));
+        }
+
+        // son stimulustan sonra da break
+        yield return StartCoroutine(HandleBreak("BREAK"));
+        continueButton.gameObject.SetActive(false);
+
+        if (timerText != null) timerText.text = "Sequence complete";
+        Debug.Log("Auto sequence finished.");
+    }
+
+    IEnumerator CountDown(float duration)
+    {
+        float remaining = duration;
+        while (remaining > 0f)
+        {
+            if (timerText != null)
+            {
+                int minutes = Mathf.FloorToInt(remaining / 60f);
+                int seconds = Mathf.FloorToInt(remaining % 60f);
+                timerText.text = $"{minutes:00}:{seconds:00} remaining";
+            }
+            yield return null;
+            remaining -= Time.deltaTime;
+        }
+    }
+
+    public void OnContinueAutoClicked()
+    {
+        continuePressed = true;
+    }
 
     void OnShowSceneClicked()
     {
         if (isSwitching) return; // ← işlem varsa yeni isteği yoksay
+
+        if (autoCoroutine != null)
+        {
+            StopCoroutine(autoCoroutine);
+            autoCoroutine = null;
+            continueButton.gameObject.SetActive(false);
+            if (timerText != null) timerText.text = "Manual mode";
+        }
         
         int index = sceneDropdown.value;
         string sceneName;
@@ -150,6 +225,14 @@ public class ExperimentController : MonoBehaviour
 
     void OnBreakClicked()
     {
+        if (autoCoroutine != null)
+        {
+            StopCoroutine(autoCoroutine);
+            autoCoroutine = null;
+            continueButton.gameObject.SetActive(false);
+            if (timerText != null) timerText.text = "Manual mode";
+        }
+
         StartCoroutine(HandleBreak("BREAK"));
     }
 
@@ -232,6 +315,14 @@ public class ExperimentController : MonoBehaviour
             foreach (Light light in lights)
                 light.enabled = false;
         }
+    }
+
+    public void StartAutoMode()
+    {
+        if (timerText != null)
+            timerText.gameObject.SetActive(true);
+            
+        autoCoroutine = StartCoroutine(AutoSequence());
     }
 }
 

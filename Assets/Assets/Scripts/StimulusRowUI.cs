@@ -7,14 +7,22 @@ public class StimulusRowUI : MonoBehaviour
 {
     public TMP_Text labelText;
     public TMP_InputField sceneNameInput;
+    public TMP_InputField durationInput;
     public Button removeButton;
 
     private Action<StimulusRowUI> onRemove;
 
-    public void Init(string label, string sceneName, Action<StimulusRowUI> removeCallback)
+    public float GetDuration()
+    {
+        float result;
+        return float.TryParse(durationInput.text, out result) ? result : 60f;
+    }
+
+    public void Init(string label, string sceneName, float duration, Action<StimulusRowUI> removeCallback)
     {
         labelText.text = label;
         sceneNameInput.text = sceneName;
+        durationInput.text = duration.ToString();
         onRemove = removeCallback;
         removeButton.onClick.AddListener(() => onRemove?.Invoke(this));
     }
