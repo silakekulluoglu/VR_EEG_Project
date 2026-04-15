@@ -14,6 +14,8 @@ public class EEGDataLogger : MonoBehaviour
     private float cachedTheta = 0f;
     private float cachedAlpha = 0f;
 
+    public string MindIndexPath { get; private set; }
+
     void Start()
     {
         // save to Documents/eeg-analytics
@@ -42,6 +44,7 @@ public class EEGDataLogger : MonoBehaviour
             Path.Combine(basePath, "mindIndex_" + timestamp + ".csv"), true);
         mindIndexLogger.AutoFlush = true;
         mindIndexLogger.WriteLine("timestamp,scene_label,attention,relaxation,asymmetry,leftActivity,rightActivity, cognitive_load");
+        MindIndexPath = Path.Combine(basePath, "mindIndex_" + timestamp + ".csv");
 
         // subscribe to NetworkManager events
         NetworkManager.OnNetworkReceiveEEGRawSignals += OnRawSignals;
@@ -149,8 +152,7 @@ public class EEGDataLogger : MonoBehaviour
 
     void OnDestroy()
     {
-        // close all files safely
-        if (rawDataLogger != null) rawDataLogger.Close();
+        if (rawDataLogger != null)   rawDataLogger.Close();
         if (featureDataLogger != null) featureDataLogger.Close();
         if (mindIndexLogger != null) mindIndexLogger.Close();
     }
@@ -159,5 +161,18 @@ public class EEGDataLogger : MonoBehaviour
     {
         DateTimeOffset dt = DateTimeOffset.FromUnixTimeMilliseconds((long)(unixTimestamp * 1000));
         return dt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss.fff");
+    }
+
+    public void StopLogging()
+    {
+        NetworkManager.OnNetworkReceiveEEGRawSignals -= OnRawSignals;
+        LooxidLinkData.OnReceiveEEGFeatureIndexes -= OnFeatureIndexes;
+        NetworkManager.OnNetworkReceiveMindIndexes -= OnMindIndex;
+
+        if (rawDataLogger != null)   { rawDataLogger.Close();   rawDataLogger = null; }
+        if (featureDataLogger != null) { featureDataLogger.Close(); featureDataLogger = null; }
+        if (mindIndexLogger != null) { mindIndexLogger.Close(); mindIndexLogger = null; }
+
+        Debug.Log("Logging stopped.");
     }
 }

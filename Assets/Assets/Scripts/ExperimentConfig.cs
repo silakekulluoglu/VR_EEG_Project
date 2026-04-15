@@ -9,6 +9,7 @@ public class ExperimentConfig : ScriptableObject
     public string breakSceneName = ""; // optional, leave empty for default
     public float breakDuration = 30f;  
     public bool autoMode = false;      
+    public bool autoBreak = false; // ← yeni
     public List<StimulusEntry> stimuli = new List<StimulusEntry>();
 }
 

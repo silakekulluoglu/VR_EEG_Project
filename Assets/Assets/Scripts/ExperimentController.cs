@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
+using System.IO;
 
 public class ExperimentController : MonoBehaviour
 {
@@ -22,8 +24,17 @@ public class ExperimentController : MonoBehaviour
     [Header("Logging")]
     public string logFileName = "experiment_log";
 
+    [Header("Auto Mode")]
+    public Button startCycleButton; // ← yeni
+
     [Header("Auto Mode UI")]
     public TextMeshProUGUI timerText;
+
+    [Header("Finish")]
+    public Button finishButton;
+
+    private string sessionTimestamp;
+    private string mindIndexCsvPath;
 
     public static string CurrentSceneLabel = "NONE";
     private string logPath = "";
@@ -36,23 +47,39 @@ public class ExperimentController : MonoBehaviour
     void Start()
     {
         CurrentSceneLabel = "NONE";
+
+        if (welcomeEnvironment != null)
+            welcomeEnvironment.SetActive(true);
+
+        if (timerText != null)
+            timerText.gameObject.SetActive(config.autoMode);
+
+        continueButton.gameObject.SetActive(false);
+        if (finishButton != null)
+        {
+            finishButton.gameObject.SetActive(!config.autoMode);
+        }
+
+        // start cycle butonu sadece auto modda görünsün
+        if (startCycleButton != null)
+        {
+            startCycleButton.gameObject.SetActive(config.autoMode);
+            startCycleButton.onClick.AddListener(OnStartCycleClicked);
+        }
+
         logPath = Application.persistentDataPath + "/" + logFileName + "_" +
                   System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".csv";
         System.IO.File.WriteAllText(logPath, "timestamp,event\n");
 
         BuildDropdown();
 
+        finishButton.onClick.AddListener(OnFinishClicked);
         showSceneButton.onClick.AddListener(OnShowSceneClicked);
         breakButton.onClick.AddListener(OnBreakClicked);
         continueButton.onClick.AddListener(OnContinueAutoClicked);
 
-        continueButton.gameObject.SetActive(false);
+        sessionTimestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
 
-        if (timerText != null)
-            timerText.gameObject.SetActive(config.autoMode);
-
-        if (config.autoMode)
-            autoCoroutine = StartCoroutine(AutoSequence());
     }
 
     public void BuildDropdown()
@@ -66,34 +93,48 @@ public class ExperimentController : MonoBehaviour
     }
     IEnumerator AutoSequence()
     {
-        // Baseline
         yield return StartCoroutine(SwitchScene(config.baselineSceneName, "BASELINE"));
         yield return StartCoroutine(CountDown(config.baselineDuration));
 
         for (int i = 0; i < config.stimuli.Count; i++)
         {
-            // süre doldu → break
+            // break
             yield return StartCoroutine(HandleBreak("BREAK"));
 
-            // experimenter continue a basana kadar bekle
-            continuePressed = false;
-            continueButton.gameObject.SetActive(true);
-            if (timerText != null) timerText.text = "Waiting...";
-            yield return new WaitUntil(() => continuePressed);
-            continueButton.gameObject.SetActive(false);
+            if (config.autoBreak)
+            {
+                // otomatik break — süre dolar, devam eder
+                yield return StartCoroutine(CountDown(config.breakDuration));
+            }
+            else
+            {
+                // manuel break — experimenter continue a basana kadar bekle
+                continuePressed = false;
+                continueButton.gameObject.SetActive(true);
+                if (timerText != null) timerText.text = "Break — press Continue when ready";
+                yield return new WaitUntil(() => continuePressed);
+                continueButton.gameObject.SetActive(false);
+            }
 
-            // sıradaki stimulus
             var stimulus = config.stimuli[i];
             yield return StartCoroutine(SwitchScene(stimulus.sceneName, "STIMULI_" + (i + 1)));
             yield return StartCoroutine(CountDown(stimulus.duration));
         }
 
-        // son stimulustan sonra da break
-        yield return StartCoroutine(HandleBreak("BREAK"));
-        continueButton.gameObject.SetActive(false);
+        // sekans bitti
+        if (!string.IsNullOrEmpty(currentlyLoadedScene))
+        {
+            LogEvent(GetCurrentLabel() + "_END");
+            CurrentSceneLabel = "NONE";
+            yield return SceneManager.UnloadSceneAsync(currentlyLoadedScene);
+            currentlyLoadedScene = "";
+        }
+
+        if (welcomeEnvironment != null)
+            welcomeEnvironment.SetActive(true);
 
         if (timerText != null) timerText.text = "Sequence complete";
-        Debug.Log("Auto sequence finished.");
+        if (finishButton != null) finishButton.gameObject.SetActive(true);
     }
 
     IEnumerator CountDown(float duration)
@@ -321,7 +362,48 @@ public class ExperimentController : MonoBehaviour
     {
         if (timerText != null)
             timerText.gameObject.SetActive(true);
-            
+
+        if (startCycleButton != null)
+            startCycleButton.gameObject.SetActive(true);
+    }
+
+    void OnFinishClicked()
+    {
+        EEGDataLogger logger = FindObjectOfType<EEGDataLogger>();
+        if (logger != null)
+            logger.StopLogging();
+
+        if (logger == null)
+        {
+            Debug.LogError("EEGDataLogger bulunamadı.");
+            return;
+        }
+
+        string basePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+            "eeg-analytics"
+        );
+
+        var analyzer = new SessionAnalyzer();
+        analyzer.Analyze(logger.MindIndexPath);
+
+        var generator = new ReportGenerator();
+        string reportPath = generator.Generate(analyzer, basePath, sessionTimestamp);
+
+        Debug.Log("Rapor oluşturuldu: " + reportPath);
+
+        // tarayıcıda aç
+        Application.OpenURL("file:///" + reportPath.Replace("\\", "/"));
+    }
+
+    public void OnStartCycleClicked()
+    {
+        if (startCycleButton != null)
+            startCycleButton.gameObject.SetActive(false);
+
+        if (welcomeEnvironment != null)
+            welcomeEnvironment.SetActive(false);
+
         autoCoroutine = StartCoroutine(AutoSequence());
     }
 }

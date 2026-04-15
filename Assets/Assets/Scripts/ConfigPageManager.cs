@@ -25,6 +25,7 @@ public class ConfigPageManager : MonoBehaviour
 
     [Header("Auto Mode")]
     public Toggle autoModeToggle;
+    public Toggle autoBreakToggle;
     public TMP_InputField breakDurationInput;
 
     private List<StimulusRowUI> rows = new List<StimulusRowUI>();
@@ -65,6 +66,7 @@ public class ConfigPageManager : MonoBehaviour
         config.breakSceneName = breakSceneInput.text.Trim();
         config.breakDuration = float.TryParse(breakDurationInput.text, out float bd) ? bd : 30f;
         config.autoMode = autoModeToggle.isOn;
+        config.autoBreak = autoBreakToggle.isOn;
 
         config.stimuli.Clear();
         foreach (var row in rows)
