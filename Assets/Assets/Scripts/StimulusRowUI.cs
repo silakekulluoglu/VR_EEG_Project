@@ -15,7 +15,7 @@ public class StimulusRowUI : MonoBehaviour
     public float GetDuration()
     {
         float result;
-        return float.TryParse(durationInput.text, out result) ? result : 60f;
+        return float.TryParse(durationInput.text, out result) ? result : 0f;
     }
 
     public void Init(string label, string sceneName, float duration, Action<StimulusRowUI> removeCallback)
