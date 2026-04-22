@@ -46,7 +46,7 @@ public class ConfigPageManager : MonoBehaviour
 
     void SpawnRow(string label, string sceneName, float duration = 0f)
     {
-        GameObject go = Instantiate(stimulusRowPrefab, stimuliContainer);
+        GameObject go = Instantiate(stimulusRowPrefab, stimuliContainer, false);
         StimulusRowUI row = go.GetComponent<StimulusRowUI>();
         row.Init(label, sceneName, duration, OnRemoveRow); // ← duration ve OnRemoveRow eklendi
         rows.Add(row);
