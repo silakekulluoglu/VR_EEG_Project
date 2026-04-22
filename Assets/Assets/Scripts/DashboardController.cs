@@ -54,7 +54,8 @@ public class DashboardController : MonoBehaviour
 
         // what happens when the button is clicked
         startButton.onClick.AddListener(OnStartClicked);
-        continueButton.onClick.AddListener(OnContinueClicked);
+        if (continueButton != null)
+            continueButton.onClick.AddListener(OnContinueClicked);
 
         // if the sensor is already connected when the game starts
         if (LooxidLinkManager.Instance != null &&
@@ -113,13 +114,13 @@ public class DashboardController : MonoBehaviour
     void SetSensorReadyUI(bool isReady) {
         if (isReady)
         {
-            statusText.text = "Sensor is connected - ready";
+            statusText.text = "Sensor connected";
             statusText.color = Color.green;
             startButton.interactable = true;
         }
         else 
         {
-            statusText.text = "Sensor is disconnected - waiting...";
+            statusText.text = "Sensor disconnected";
             statusText.color = Color.red;
             startButton.interactable = false;
         }

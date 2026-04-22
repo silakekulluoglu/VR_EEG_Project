@@ -22,6 +22,7 @@ public class ConfigPageManager : MonoBehaviour
     [Header("Panel References")]
     public GameObject configPanel;
     public GameObject experimentView;
+    public CanvasGroup experimentCanvasGroup;
 
     [Header("Auto Mode")]
     public Toggle autoModeToggle;
@@ -139,6 +140,12 @@ public class ConfigPageManager : MonoBehaviour
         // 2. Panelleri Değiştir
         configPanel.SetActive(false);
         experimentView.SetActive(true);
+        if (experimentCanvasGroup != null)
+        {
+            experimentCanvasGroup.alpha = 1;
+            experimentCanvasGroup.interactable = true;
+            experimentCanvasGroup.blocksRaycasts = true;
+        }
 
         // 3. Auto Mode Aktifse Controller'ı Tetikle
         if (config.autoMode)
