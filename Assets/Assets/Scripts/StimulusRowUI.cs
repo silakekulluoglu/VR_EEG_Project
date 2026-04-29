@@ -24,6 +24,7 @@ public class StimulusRowUI : MonoBehaviour
         sceneNameInput.text = sceneName;
         durationInput.text = duration.ToString();
         onRemove = removeCallback;
+        removeButton.onClick.RemoveAllListeners();
         removeButton.onClick.AddListener(() => onRemove?.Invoke(this));
     }
 

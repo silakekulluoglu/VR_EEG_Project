@@ -40,6 +40,7 @@ public class ConfigPageManager : MonoBehaviour
 
     public void OnAddStimulusClicked()
     {
+        Debug.Log("OnAddStimulusClicked called. Stack: " + System.Environment.StackTrace);
         string label = "Stimulus " + (rows.Count + 1);
         SpawnRow(label, "");
     }

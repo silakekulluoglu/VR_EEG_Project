@@ -64,6 +64,7 @@ public class ExperimentController : MonoBehaviour
         if (startCycleButton != null)
         {
             startCycleButton.gameObject.SetActive(config.autoMode);
+            startCycleButton.onClick.RemoveAllListeners();
             startCycleButton.onClick.AddListener(OnStartCycleClicked);
         }
 
@@ -73,12 +74,20 @@ public class ExperimentController : MonoBehaviour
 
         BuildDropdown();
 
+        finishButton.onClick.RemoveAllListeners();
         finishButton.onClick.AddListener(OnFinishClicked);
+
+        showSceneButton.onClick.RemoveAllListeners();
         showSceneButton.onClick.AddListener(OnShowSceneClicked);
+
+        breakButton.onClick.RemoveAllListeners();
         breakButton.onClick.AddListener(OnBreakClicked);
+
+        continueButton.onClick.RemoveAllListeners();
         continueButton.onClick.AddListener(OnContinueAutoClicked);
 
         sessionTimestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+        Debug.Log("ExperimentController Start() called — frame: " + Time.frameCount);
 
     }
 
