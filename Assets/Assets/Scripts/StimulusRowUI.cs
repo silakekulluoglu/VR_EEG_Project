@@ -22,7 +22,7 @@ public class StimulusRowUI : MonoBehaviour
     {
         labelText.text = label;
         sceneNameInput.text = sceneName;
-        durationInput.text = duration.ToString();
+        durationInput.text = duration > 0 ? duration.ToString() : "";
         onRemove = removeCallback;
         removeButton.onClick.RemoveAllListeners();
         removeButton.onClick.AddListener(() => onRemove?.Invoke(this));

@@ -102,8 +102,9 @@ public class ExperimentController : MonoBehaviour
     }
     IEnumerator AutoSequence()
     {
+        if (sceneDropdown != null) sceneDropdown.value = 0;
         yield return StartCoroutine(SwitchScene(config.baselineSceneName, "BASELINE"));
-        yield return StartCoroutine(CountDown(config.baselineDuration));
+        yield return StartCoroutine(CountDown(config.baselineDuration, "Baseline"));
 
         for (int i = 0; i < config.stimuli.Count; i++)
         {
@@ -113,7 +114,7 @@ public class ExperimentController : MonoBehaviour
             if (config.autoBreak)
             {
                 // otomatik break — süre dolar, devam eder
-                yield return StartCoroutine(CountDown(config.breakDuration));
+                yield return StartCoroutine(CountDown(config.breakDuration, "Break"));
             }
             else
             {
@@ -126,8 +127,9 @@ public class ExperimentController : MonoBehaviour
             }
 
             var stimulus = config.stimuli[i];
+            if (sceneDropdown != null) sceneDropdown.value = i + 1;
             yield return StartCoroutine(SwitchScene(stimulus.sceneName, "STIMULI_" + (i + 1)));
-            yield return StartCoroutine(CountDown(stimulus.duration));
+            yield return StartCoroutine(CountDown(stimulus.duration, "Stimuli " + (i + 1)));
         }
 
         // sekans bitti
@@ -146,7 +148,7 @@ public class ExperimentController : MonoBehaviour
         if (finishButton != null) finishButton.gameObject.SetActive(true);
     }
 
-    IEnumerator CountDown(float duration)
+    IEnumerator CountDown(float duration, string prefix)
     {
         float remaining = duration;
         while (remaining > 0f)
@@ -155,7 +157,7 @@ public class ExperimentController : MonoBehaviour
             {
                 int minutes = Mathf.FloorToInt(remaining / 60f);
                 int seconds = Mathf.FloorToInt(remaining % 60f);
-                timerText.text = $"{minutes:00}:{seconds:00} remaining";
+                timerText.text = $"{prefix}: {minutes:00}:{seconds:00} remaining";
             }
             yield return null;
             remaining -= Time.deltaTime;
@@ -302,6 +304,9 @@ public class ExperimentController : MonoBehaviour
 
         if (!string.IsNullOrEmpty(config.breakSceneName))
         {
+            if (welcomeEnvironment != null)
+                welcomeEnvironment.SetActive(false);
+
             yield return SceneManager.LoadSceneAsync(config.breakSceneName, LoadSceneMode.Additive);
             currentlyLoadedScene = config.breakSceneName;
             CenterSceneAroundPlayer(config.breakSceneName);

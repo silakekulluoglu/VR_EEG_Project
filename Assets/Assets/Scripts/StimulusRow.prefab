@@ -210,7 +210,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: Duration (s) ..
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3274bf2351a124857b8b5c49e8673aea, type: 2}
   m_sharedMaterial: {fileID: -6776810201731565742, guid: 3274bf2351a124857b8b5c49e8673aea, type: 2}
@@ -244,8 +244,8 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 2
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_wordSpacing: 0
@@ -365,7 +365,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 
+  m_text: Enter the scene name...
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 3274bf2351a124857b8b5c49e8673aea, type: 2}
   m_sharedMaterial: {fileID: -6776810201731565742, guid: 3274bf2351a124857b8b5c49e8673aea, type: 2}
@@ -623,7 +623,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.5000038}
+  m_AnchoredPosition: {x: 0, y: -0.5}
   m_SizeDelta: {x: -20, y: -13}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2689579194791526913
@@ -1118,7 +1118,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 131.5, y: 59.8}
+  m_SizeDelta: {x: 181, y: 59.8}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8067476593865277513
 CanvasRenderer:
@@ -1427,7 +1427,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 305.3, y: 59.8}
+  m_SizeDelta: {x: 305.9, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1660888398205808215
 CanvasRenderer:
