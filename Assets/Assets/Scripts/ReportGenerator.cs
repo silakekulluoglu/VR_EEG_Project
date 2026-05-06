@@ -19,15 +19,12 @@ public class ReportGenerator
     // Channel names in enum order (AF3=0, AF4=1, Fp1=2, Fp2=3, AF7=4, AF8=5)
     static readonly string[] ChannelNames = { "AF3", "AF4", "Fp1", "Fp2", "AF7", "AF8" };
 
-    // 2-D electrode positions on a 200×200 canvas (center=100,100, head-radius=85)
-    // Convention: nose pointing up (y decreases toward nose/front)
-    static readonly int[] ChX = { 70,  130,  85, 115,  46, 154 };
-    static readonly int[] ChY = { 46,   46,  32,  32,  64,  64 };
+    static bool IsBreakScene(string name) =>
+        name.StartsWith("break", StringComparison.OrdinalIgnoreCase);
 
     public string Generate(SessionAnalyzer analyzer, string outputDir, string sessionTimestamp)
     {
         string reportPath = Path.Combine(outputDir, "report_" + sessionTimestamp + ".html");
-        bool hasBandData  = HasAnyBandData(analyzer);
 
         var sb = new System.Text.StringBuilder();
 
@@ -71,16 +68,6 @@ public class ReportGenerator
                padding: 12px 16px; flex: 1 1 180px; }
   .band-card h4 { margin: 0 0 6px; color: var(--purple); }
   .band-card .range { font-size: 0.8em; color: #888; }
-  .topo-section { margin-top: 20px; }
-  .topo-row { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;
-              margin: 16px 0; }
-  .topo-item { text-align: center; }
-  .topo-item canvas { display: block; border-radius: 50%; border: 2px solid var(--purple-mid); }
-  .topo-item .label { font-size: 0.85em; color: #555; margin-top: 4px; }
-  .colorbar { display: inline-flex; align-items: center; gap: 8px;
-              font-size: 0.8em; margin-top: 4px; }
-  .colorbar-grad { width: 100px; height: 12px; border-radius: 6px;
-    background: linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000); }
   .scene-block { border: 1px solid var(--purple-mid); border-radius: 10px;
                  padding: 20px; margin: 24px 0; background: white; }
   .scene-block h3 { margin-top: 0; }
@@ -94,6 +81,15 @@ public class ReportGenerator
   .hemi-left { background: #e8f0ff; }
   .hemi-right { background: #fff0e8; }
   .legend-note { font-size: 0.85em; color: #666; font-style: italic; }
+  details.accordion { border: 1px solid var(--purple-mid); border-radius: 8px;
+                      margin: 20px 0; background: white; }
+  details.accordion summary { cursor: pointer; padding: 14px 18px; font-weight: 600;
+                               color: var(--purple); list-style: none; display: flex;
+                               align-items: center; gap: 8px; user-select: none; }
+  details.accordion summary::-webkit-details-marker { display: none; }
+  details.accordion summary::before { content: '▶'; font-size: 0.75em; transition: transform 0.2s; }
+  details.accordion[open] summary::before { transform: rotate(90deg); }
+  details.accordion .accordion-body { padding: 0 18px 18px; }
   @media print { body { margin: 10px; } .scene-block { page-break-inside: avoid; } }
 </style>
 </head>
@@ -104,8 +100,10 @@ public class ReportGenerator
         sb.AppendLine($"<p><strong>Session:</strong> {sessionTimestamp} &nbsp;|&nbsp; " +
                       $"<strong>Generated:</strong> {DateTime.Now:yyyy-MM-dd HH:mm:ss}</p>");
 
-        // ── What does this report show? ────────────────────────────────────────
-        sb.AppendLine(@"<h2>What Is This Report?</h2>
+        // ── What does this report show? (accordion) ────────────────────────────
+        sb.AppendLine(@"<details class='accordion'>
+<summary>What Is This Report? (click to expand)</summary>
+<div class='accordion-body'>
 <div class='info-box'>
 <p>This report summarises EEG (electroencephalography) data recorded during a VR experiment.
 The Looxid Link headset measures electrical brain activity from <strong>6 frontal sensors</strong>:
@@ -121,7 +119,7 @@ The Looxid Link headset measures electrical brain activity from <strong>6 fronta
 </ul>
 </div>");
 
-        // ── Band explanation cards ─────────────────────────────────────────────
+        // ── Band explanation cards (inside accordion) ──────────────────────────
         sb.AppendLine("<div class='band-grid'>");
         for (int b = 0; b < 5; b++)
         {
@@ -132,6 +130,7 @@ The Looxid Link headset measures electrical brain activity from <strong>6 fronta
 </div>");
         }
         sb.AppendLine("</div>");
+        sb.AppendLine("</div></details>"); // close accordion-body and details
 
         // ── Per-scene overview table ───────────────────────────────────────────
         sb.AppendLine("<h2>Per-Scene Overview</h2>");
@@ -149,6 +148,7 @@ The Looxid Link headset measures electrical brain activity from <strong>6 fronta
 
         foreach (var stats in analyzer.sceneStatsList)
         {
+            if (IsBreakScene(stats.sceneName)) continue;
             string rowClass = stats.sceneName == "BASELINE" ? "class='baseline-row'" : "";
             sb.AppendLine($@"<tr {rowClass}>
   <td><strong>{stats.sceneName}</strong></td>
@@ -189,6 +189,7 @@ Attention and Relaxation are Looxid SDK indexes (0–1). Cognitive Load is Theta
             foreach (var stats in analyzer.sceneStatsList)
             {
                 if (stats.sceneName == "BASELINE") continue;
+                if (IsBreakScene(stats.sceneName)) continue;
                 sb.AppendLine($@"<tr>
   <td><strong>{stats.sceneName}</strong></td>
   <td>{FormatDiff(stats.AvgAttention,     baseline.AvgAttention)}</td>
@@ -208,6 +209,8 @@ Attention and Relaxation are Looxid SDK indexes (0–1). Cognitive Load is Theta
 
         foreach (var stats in analyzer.sceneStatsList)
         {
+            if (IsBreakScene(stats.sceneName)) continue;
+
             sb.AppendLine($"<div class='scene-block'>");
             sb.AppendLine($"<h3>{stats.sceneName}</h3>");
 
@@ -265,32 +268,6 @@ Channels: AF3/AF4 are medial-frontal, Fp1/Fp2 are frontal-polar (center), AF7/AF
             sb.AppendLine("</div>"); // scene-block
         }
 
-        // ── Brain topographic maps ─────────────────────────────────────────────
-        if (hasBandData)
-        {
-            sb.AppendLine("<h2>Brain Topographic Maps</h2>");
-            sb.AppendLine(@"<div class='info-box'><p>Each map below shows the average power of one frequency band
-across the 6 frontal EEG channels during a scene. The head is viewed from above with the nose pointing
-upward. Electrode positions (AF7, AF3, Fp1, Fp2, AF4, AF8) are marked with their labels.
-The background is interpolated using inverse-distance weighting from the 6 sensor readings.</p>
-<p>Color scale: <span style='color:#00c'>blue</span> = low power &nbsp;→&nbsp;
-<span style='color:#0a0'>green</span> = medium &nbsp;→&nbsp;
-<span style='color:#c00'>red</span> = high power.</p>
-<div class='colorbar'><span>Low</span><div class='colorbar-grad'></div><span>High</span></div>
-</div>");
-
-            // Embed data JSON
-            sb.AppendLine("<script id='eeg-data' type='application/json'>");
-            sb.AppendLine(BuildTopoJson(analyzer));
-            sb.AppendLine("</script>");
-
-            // Canvas placeholders (created by JS)
-            sb.AppendLine("<div id='topo-container'></div>");
-
-            // JavaScript for drawing
-            sb.AppendLine(BuildTopoJavaScript());
-        }
-
         sb.AppendLine("</body></html>");
 
         File.WriteAllText(reportPath, sb.ToString());
@@ -302,203 +279,6 @@ The background is interpolated using inverse-distance weighting from the 6 senso
     static void AppendMetricCard(System.Text.StringBuilder sb, string val, string name)
     {
         sb.AppendLine($"<div class='metric-card'><div class='val'>{val}</div><div class='name'>{name}</div></div>");
-    }
-
-    bool HasAnyBandData(SessionAnalyzer analyzer)
-    {
-        foreach (var s in analyzer.sceneStatsList)
-            if (s.bandChannelData != null) return true;
-        return false;
-    }
-
-    string BuildTopoJson(SessionAnalyzer analyzer)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.Append("{\"channels\":[");
-        for (int c = 0; c < 6; c++)
-            sb.Append($"\"{ChannelNames[c]}\"{(c < 5 ? "," : "")}");
-        sb.Append("],\"positions\":[");
-        for (int c = 0; c < 6; c++)
-            sb.Append($"{{\"x\":{ChX[c]},\"y\":{ChY[c]}}}{(c < 5 ? "," : "")}");
-        sb.Append("],\"scenes\":[");
-
-        bool firstScene = true;
-        foreach (var stats in analyzer.sceneStatsList)
-        {
-            if (stats.bandChannelData == null) continue;
-            if (!firstScene) sb.Append(",");
-            firstScene = false;
-
-            sb.Append($"{{\"name\":\"{EscapeJson(stats.sceneName)}\",\"bands\":{{");
-            for (int b = 0; b < 5; b++)
-            {
-                float[] avgs = stats.AvgBandPerChannel(b);
-                sb.Append($"\"{BandNames[b].ToLower()}\":[");
-                for (int c = 0; c < 6; c++)
-                {
-                    float v = (avgs != null && c < avgs.Length) ? avgs[c] : 0f;
-                    sb.Append(v.ToString("F6", System.Globalization.CultureInfo.InvariantCulture));
-                    if (c < 5) sb.Append(",");
-                }
-                sb.Append("]");
-                if (b < 4) sb.Append(",");
-            }
-            sb.Append("}}");
-        }
-
-        sb.Append("]}");
-        return sb.ToString();
-    }
-
-    static string EscapeJson(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
-
-    string BuildTopoJavaScript()
-    {
-        return @"<script>
-(function() {
-  const data = JSON.parse(document.getElementById('eeg-data').textContent);
-  const container = document.getElementById('topo-container');
-  const W = 200, H = 200, R = 88, CX = 100, CY = 105;
-  const bands = ['delta','theta','alpha','beta','gamma'];
-  const bandLabels = ['Delta (0.5–4 Hz)','Theta (4–8 Hz)','Alpha (8–13 Hz)','Beta (13–30 Hz)','Gamma (30–100 Hz)'];
-
-  // Global min/max per band for consistent color scale across scenes
-  const bandMin = {}, bandMax = {};
-  bands.forEach(b => { bandMin[b] = Infinity; bandMax[b] = -Infinity; });
-  data.scenes.forEach(scene => {
-    bands.forEach(b => {
-      scene.bands[b].forEach(v => {
-        if (v > 0) {
-          if (v < bandMin[b]) bandMin[b] = v;
-          if (v > bandMax[b]) bandMax[b] = v;
-        }
-      });
-    });
-  });
-  bands.forEach(b => { if (bandMin[b] === Infinity) { bandMin[b] = 0; bandMax[b] = 1; } });
-
-  function jetColor(t) {
-    t = Math.max(0, Math.min(1, t));
-    let r, g, bl;
-    if (t < 0.25)      { r = 0;                 g = t * 4 * 255;        bl = 255; }
-    else if (t < 0.5)  { r = 0;                 g = 255;                bl = (0.5 - t) * 4 * 255; }
-    else if (t < 0.75) { r = (t - 0.5) * 4 * 255; g = 255;              bl = 0; }
-    else               { r = 255;               g = (1 - t) * 4 * 255;  bl = 0; }
-    return [Math.round(r), Math.round(g), Math.round(bl)];
-  }
-
-  function idw(px, py, positions, values, power) {
-    let tw = 0, tv = 0;
-    for (let i = 0; i < positions.length; i++) {
-      const dx = px - positions[i].x, dy = py - positions[i].y;
-      const d = Math.sqrt(dx*dx + dy*dy);
-      if (d < 1) return values[i];
-      const w = 1 / Math.pow(d, power);
-      tw += w; tv += w * values[i];
-    }
-    return tw > 0 ? tv / tw : 0;
-  }
-
-  function drawTopo(canvas, positions, values, minV, maxV) {
-    const ctx = canvas.getContext('2d');
-    const img = ctx.createImageData(W, H);
-    const range = (maxV - minV) || 1;
-
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        const dx = x - CX, dy = y - CY;
-        if (dx*dx + dy*dy > R*R) continue;
-        const v = idw(x, y, positions, values, 3);
-        const t = (v - minV) / range;
-        const [r, g, b] = jetColor(t);
-        const alpha = 220;
-        const idx = (y * W + x) * 4;
-        img.data[idx]   = r;
-        img.data[idx+1] = g;
-        img.data[idx+2] = b;
-        img.data[idx+3] = alpha;
-      }
-    }
-    ctx.putImageData(img, 0, 0);
-
-    // Head outline
-    ctx.beginPath();
-    ctx.arc(CX, CY, R, 0, 2*Math.PI);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Nose
-    ctx.beginPath();
-    ctx.moveTo(CX - 8, CY - R + 8);
-    ctx.lineTo(CX, CY - R - 10);
-    ctx.lineTo(CX + 8, CY - R + 8);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Left ear
-    ctx.beginPath();
-    ctx.ellipse(CX - R - 4, CY, 5, 9, 0, 0, 2*Math.PI);
-    ctx.fillStyle = '#ddd';
-    ctx.fill();
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Right ear
-    ctx.beginPath();
-    ctx.ellipse(CX + R + 4, CY, 5, 9, 0, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.stroke();
-
-    // Electrode dots and labels
-    positions.forEach((pos, i) => {
-      const v = values[i];
-      const t = (v - minV) / range;
-      const [r, g, b] = jetColor(t);
-      ctx.beginPath();
-      ctx.arc(pos.x, pos.y, 9, 0, 2*Math.PI);
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fill();
-      ctx.strokeStyle = 'white';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 7.5px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(data.channels[i], pos.x, pos.y);
-    });
-  }
-
-  data.scenes.forEach(scene => {
-    const section = document.createElement('div');
-    section.className = 'topo-section';
-    const title = document.createElement('h3');
-    title.textContent = 'Scene: ' + scene.name;
-    section.appendChild(title);
-    const row = document.createElement('div');
-    row.className = 'topo-row';
-    bands.forEach((b, bi) => {
-      const item = document.createElement('div');
-      item.className = 'topo-item';
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      canvas.title = bandLabels[bi] + ' – ' + scene.name;
-      drawTopo(canvas, data.positions, scene.bands[b], bandMin[b], bandMax[b]);
-      const lbl = document.createElement('div');
-      lbl.className = 'label';
-      lbl.textContent = bandLabels[bi];
-      item.appendChild(canvas);
-      item.appendChild(lbl);
-      row.appendChild(item);
-    });
-    section.appendChild(row);
-    container.appendChild(section);
-  });
-})();
-</script>";
     }
 
     string FormatDiff(float value, float baseline)
