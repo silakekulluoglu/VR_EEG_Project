@@ -53,7 +53,8 @@ public class SessionAnalyzer
             if (parts.Length < 8) continue;
 
             string label = parts[1].Trim();
-            if (label == "NONE" || label == "TRANSITION") continue;
+            if (label == "NONE" || label == "TRANSITION" ||
+                label == "DISCONNECTED" || label == "SENSOR_OFF" || label == "NOISE_SIGNAL") continue;
 
             if (!sceneMap.ContainsKey(label))
                 sceneMap[label] = new SceneStats { sceneName = label };

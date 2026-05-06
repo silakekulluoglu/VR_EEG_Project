@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using UnityEngine.UI;
 using System.IO;
+using Looxid.Link;
 
 public class ExperimentController : MonoBehaviour
 {
@@ -39,10 +40,77 @@ public class ExperimentController : MonoBehaviour
     public static string CurrentSceneLabel = "NONE";
     private string logPath = "";
     private string currentlyLoadedScene = "";
+    private string preSensorEventLabel = "NONE";
 
     private bool isSwitching = false;
     private Coroutine autoCoroutine;
     private bool continuePressed = false;
+
+    void OnEnable()
+    {
+        LooxidLinkManager.OnLinkCoreDisconnected += HandleDisconnected;
+        LooxidLinkManager.OnLinkHubDisconnected  += HandleDisconnected;
+        LooxidLinkManager.OnLinkCoreConnected    += HandleReconnected;
+        LooxidLinkManager.OnLinkHubConnected     += HandleReconnected;
+        LooxidLinkManager.OnShowSensorOffMessage  += HandleSensorOff;
+        LooxidLinkManager.OnHideSensorOffMessage  += HandleSensorOn;
+        LooxidLinkManager.OnShowNoiseSignalMessage += HandleNoiseSignal;
+        LooxidLinkManager.OnHideNoiseSignalMessage += HandleNoiseClear;
+    }
+
+    void OnDisable()
+    {
+        LooxidLinkManager.OnLinkCoreDisconnected -= HandleDisconnected;
+        LooxidLinkManager.OnLinkHubDisconnected  -= HandleDisconnected;
+        LooxidLinkManager.OnLinkCoreConnected    -= HandleReconnected;
+        LooxidLinkManager.OnLinkHubConnected     -= HandleReconnected;
+        LooxidLinkManager.OnShowSensorOffMessage  -= HandleSensorOff;
+        LooxidLinkManager.OnHideSensorOffMessage  -= HandleSensorOn;
+        LooxidLinkManager.OnShowNoiseSignalMessage -= HandleNoiseSignal;
+        LooxidLinkManager.OnHideNoiseSignalMessage -= HandleNoiseClear;
+    }
+
+    static readonly System.Collections.Generic.HashSet<string> sensorEventLabels =
+        new System.Collections.Generic.HashSet<string> { "DISCONNECTED", "SENSOR_OFF", "NOISE_SIGNAL" };
+
+    void HandleDisconnected()
+    {
+        if (!sensorEventLabels.Contains(CurrentSceneLabel))
+            preSensorEventLabel = CurrentSceneLabel;
+        CurrentSceneLabel = "DISCONNECTED";
+    }
+
+    void HandleReconnected()
+    {
+        if (CurrentSceneLabel == "DISCONNECTED")
+            CurrentSceneLabel = preSensorEventLabel;
+    }
+
+    void HandleSensorOff()
+    {
+        if (!sensorEventLabels.Contains(CurrentSceneLabel))
+            preSensorEventLabel = CurrentSceneLabel;
+        CurrentSceneLabel = "SENSOR_OFF";
+    }
+
+    void HandleSensorOn()
+    {
+        if (CurrentSceneLabel == "SENSOR_OFF")
+            CurrentSceneLabel = preSensorEventLabel;
+    }
+
+    void HandleNoiseSignal()
+    {
+        if (!sensorEventLabels.Contains(CurrentSceneLabel))
+            preSensorEventLabel = CurrentSceneLabel;
+        CurrentSceneLabel = "NOISE_SIGNAL";
+    }
+
+    void HandleNoiseClear()
+    {
+        if (CurrentSceneLabel == "NOISE_SIGNAL")
+            CurrentSceneLabel = preSensorEventLabel;
+    }
 
     void Start()
     {
