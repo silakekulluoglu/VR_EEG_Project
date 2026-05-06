@@ -15,6 +15,7 @@ public class EEGDataLogger : MonoBehaviour
     private float cachedAlpha = 0f;
 
     public string MindIndexPath { get; private set; }
+    public string FeatureDataPath { get; private set; }
 
     void Start()
     {
@@ -35,16 +36,15 @@ public class EEGDataLogger : MonoBehaviour
         rawDataLogger.AutoFlush = true;
         rawDataLogger.WriteLine("timestamp,scene_label,seq_num,ch_data");
 
-        featureDataLogger = new StreamWriter(
-            Path.Combine(basePath, "eegFeatureData_" + timestamp + ".csv"), true);
+        FeatureDataPath = Path.Combine(basePath, "eegFeatureData_" + timestamp + ".csv");
+        featureDataLogger = new StreamWriter(FeatureDataPath, true);
         featureDataLogger.AutoFlush = true;
         featureDataLogger.WriteLine("timestamp,scene_label,delta,theta,alpha,beta,gamma");
 
-        mindIndexLogger = new StreamWriter(
-            Path.Combine(basePath, "mindIndex_" + timestamp + ".csv"), true);
+        MindIndexPath = Path.Combine(basePath, "mindIndex_" + timestamp + ".csv");
+        mindIndexLogger = new StreamWriter(MindIndexPath, true);
         mindIndexLogger.AutoFlush = true;
         mindIndexLogger.WriteLine("timestamp,scene_label,attention,relaxation,asymmetry,leftActivity,rightActivity, cognitive_load");
-        MindIndexPath = Path.Combine(basePath, "mindIndex_" + timestamp + ".csv");
 
         // subscribe to NetworkManager events
         NetworkManager.OnNetworkReceiveEEGRawSignals += OnRawSignals;
