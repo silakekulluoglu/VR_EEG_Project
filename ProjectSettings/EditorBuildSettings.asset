@@ -18,6 +18,9 @@ EditorBuildSettings:
     path: Assets/Assets/Scenes/Baseline.unity
     guid: 5b410cb096caa4ead8b9788ff4a326d0
   - enabled: 1
+    path: Assets/Assets/Scenes/OfficeSmell.unity
+    guid: d0bca7e5784decb43b2357850f735499
+  - enabled: 1
     path: Assets/Assets/Scenes/Flower.unity
     guid: 679e28dd92e786342b7944447228f70c
   m_configObjects:

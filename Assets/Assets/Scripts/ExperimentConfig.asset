@@ -20,8 +20,5 @@ MonoBehaviour:
   autoBreak: 0
   stimuli:
   - label: Stimulus 1
-    sceneName: Flower
-    duration: 60
-  - label: Stimulus 2
-    sceneName: Minimal
+    sceneName: OfficeSmell
     duration: 60
