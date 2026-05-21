@@ -133,7 +133,7 @@ public class ExperimentController : MonoBehaviour
 
             var stimulus = config.stimuli[i];
             if (sceneDropdown != null) sceneDropdown.value = i + 1;
-            yield return StartCoroutine(SwitchScene(stimulus.sceneName, "STIMULI_" + (i + 1)));
+            yield return StartCoroutine(SwitchScene(stimulus.sceneName, stimulus.sceneName));
             yield return StartCoroutine(CountDown(stimulus.duration, "Stimuli " + (i + 1)));
         }
 
@@ -199,7 +199,7 @@ public class ExperimentController : MonoBehaviour
         {
             var stimulus = config.stimuli[index - 1];
             sceneName = stimulus.sceneName;
-            label = "STIMULI_" + index;
+            label = config.stimuli[index - 1].sceneName;
         }
 
         StartCoroutine(SwitchScene(sceneName, label));
@@ -351,7 +351,7 @@ public class ExperimentController : MonoBehaviour
             return "BASELINE";
         for (int i = 0; i < config.stimuli.Count; i++)
             if (config.stimuli[i].sceneName == currentlyLoadedScene)
-                return "STIMULI_" + (i + 1);
+                return config.stimuli[i].sceneName;
         return "UNKNOWN";
     }
 
