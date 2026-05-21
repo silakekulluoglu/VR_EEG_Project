@@ -15,11 +15,17 @@ EditorBuildSettings:
     path: Assets/Assets/Scenes/Minimal.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
+    path: Assets/Assets/Scenes/Smell.unity
+    guid: 671a0d9d948a26f46a134354b29d52df
+  - enabled: 1
     path: Assets/Assets/Scenes/Baseline.unity
     guid: 5b410cb096caa4ead8b9788ff4a326d0
   - enabled: 1
-    path: Assets/Assets/Scenes/OfficeSmell.unity
+    path: Assets/Assets/Scenes/NoSmell.unity
     guid: d0bca7e5784decb43b2357850f735499
+  - enabled: 1
+    path: Assets/Assets/Scenes/Wait.unity
+    guid: b1345021d766b714ca9ee68c152fd495
   - enabled: 1
     path: Assets/Assets/Scenes/Flower.unity
     guid: 679e28dd92e786342b7944447228f70c

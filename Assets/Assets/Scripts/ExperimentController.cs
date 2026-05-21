@@ -10,6 +10,9 @@ using System.IO;
 
 public class ExperimentController : MonoBehaviour
 {
+    [Header("VR Player")]
+    public Transform xrOrigin;
+
     [Header("Welcome Environment")]
     public GameObject welcomeEnvironment;
 
@@ -235,7 +238,7 @@ public class ExperimentController : MonoBehaviour
         yield return SceneManager.LoadSceneAsync(newSceneName, LoadSceneMode.Additive);
         currentlyLoadedScene = newSceneName;
 
-        CenterSceneAroundPlayer(newSceneName);
+        PositionPlayerAtSpawnPoint(newSceneName);
         SetSceneLayer(newSceneName);
         DisableExtraSceneComponents(newSceneName);
 
@@ -248,31 +251,38 @@ public class ExperimentController : MonoBehaviour
     }
 
     
-     void CenterSceneAroundPlayer(string sceneName)
+     void PositionPlayerAtSpawnPoint(string sceneName)
     {
-        Scene scene = SceneManager.GetSceneByName(sceneName);
-        GameObject[] rootObjects = scene.GetRootGameObjects();
-
-        // first, find the camera in the loaded scene
-        Vector3 offset = Vector3.zero;
-        foreach (GameObject obj in rootObjects)
+        if (xrOrigin == null)
         {
-            Camera cam = obj.GetComponentInChildren<Camera>();
-            if (cam != null)
+            Debug.LogWarning("XR Origin atanmadı!");
+            return;
+        }
+
+        Scene scene = SceneManager.GetSceneByName(sceneName);
+        GameObject spawnPoint = null;
+
+        foreach (GameObject obj in scene.GetRootGameObjects())
+        {
+            if (obj.name == "PlayerSpawnPoint")
             {
-                // offset is the negative of that camera's position
-                offset = -cam.transform.position;
+                spawnPoint = obj;
                 break;
             }
         }
 
-        // then move all root objects by that offset
-        foreach (GameObject obj in rootObjects)
+        if (spawnPoint != null)
         {
-            if (obj.GetComponent<Camera>() != null) continue;
-            if (obj.GetComponent<Light>() != null) continue;
-
-            obj.transform.position += offset;
+            xrOrigin.position = spawnPoint.transform.position;
+            xrOrigin.rotation = spawnPoint.transform.rotation;
+            Debug.Log("Oyuncu spawn noktasına taşındı: " + spawnPoint.transform.position);
+        }
+        else
+        {
+            // SpawnPoint yoksa ortada tut, sessize alma
+            Debug.LogWarning(sceneName + " sahnesinde PlayerSpawnPoint bulunamadı! Pozisyon sıfırlandı.");
+            xrOrigin.position = Vector3.zero;
+            xrOrigin.rotation = Quaternion.identity;
         }
     }
 
@@ -311,7 +321,7 @@ public class ExperimentController : MonoBehaviour
 
             yield return SceneManager.LoadSceneAsync(config.breakSceneName, LoadSceneMode.Additive);
             currentlyLoadedScene = config.breakSceneName;
-            CenterSceneAroundPlayer(config.breakSceneName);
+            PositionPlayerAtSpawnPoint(config.breakSceneName);
             SetSceneLayer(config.breakSceneName);
             DisableExtraSceneComponents(config.breakSceneName);
         }

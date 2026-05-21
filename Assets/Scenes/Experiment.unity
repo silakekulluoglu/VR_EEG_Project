@@ -4876,6 +4876,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 826b054fdd5794857abf3caee4d1196f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  xrOrigin: {fileID: 1179526686}
   welcomeEnvironment: {fileID: 691512450}
   config: {fileID: 11400000, guid: cc273900438404111b86c9254eff6df7, type: 2}
   sceneDropdown: {fileID: 1953324223}
@@ -11860,7 +11861,7 @@ MonoBehaviour:
   m_OriginBaseGameObject: {fileID: 1179526683}
   m_CameraFloorOffsetObject: {fileID: 133059962}
   m_RequestedTrackingOriginMode: 2
-  m_CameraYOffset: 1.1176
+  m_CameraYOffset: 0
 --- !u!4 &1179526686
 Transform:
   m_ObjectHideFlags: 0
